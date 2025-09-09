@@ -3,7 +3,7 @@ import 'package:args/args.dart';
 import 'package:genhtml/genhtml.dart';
 
 // be in the habit of checking this against pubspec.yaml
-const String version = "1.0.0-rc2";
+const String version = "1.0.0";
 
 ArgParser buildParser() {
   return ArgParser()
