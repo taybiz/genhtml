@@ -1,0 +1,62 @@
+name: Build Windows Executables
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Dart SDK
+      uses: dart-lang/setup-dart@v1
+      with:
+        sdk: '3.9.2'
+    
+    - name: Install dependencies
+      run: dart pub get
+    
+    - name: Run tests
+      run: dart test
+
+  build:
+    runs-on: windows-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Dart SDK
+      uses: dart-lang/setup-dart@v1
+      with:
+        sdk: '3.9.2'
+    
+    - name: Install dependencies
+      run: dart pub get
+    
+    - name: Build executable for AMD64
+      run: dart compile exe bin/genhtml.dart -o genhtml-windows-amd64.exe
+    
+    - name: Verify executable works
+      run: |
+        .\genhtml-windows-amd64.exe --help
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Executable verification failed"
+          exit 1
+        }
+        Write-Output "Executable verification successful"
+    
+    - name: Upload AMD64 artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: genhtml-windows-amd64
+        path: genhtml-windows-amd64.exe
+        retention-days: 30

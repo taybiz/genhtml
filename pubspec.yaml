@@ -1,0 +1,19 @@
+name: genhtml
+description: A Windows-native implementation of genhtml for generating HTML coverage reports from LCOV trace files. Drop-in replacement for the Linux genhtml tool.
+version: 1.0.0
+repository: https://github.com/staylorx/genhtml-dart
+
+environment:
+  sdk: ^3.9.2
+
+# Add regular dependencies here.
+dependencies:
+  args: ^2.7.0
+  path: ^1.8.0
+  yaml: ^3.1.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6
+  io: ^1.0.0
+  coverage: ^1.6.0

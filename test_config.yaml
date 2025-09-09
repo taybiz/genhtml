@@ -1,0 +1,33 @@
+# Test configuration for genhtml project
+test_on: vm
+coverage: true
+
+# Test patterns
+test_patterns:
+  - "test/**/*_test.dart"
+
+# Coverage settings
+coverage_settings:
+  # Minimum coverage thresholds
+  line_coverage: 80
+  function_coverage: 80
+  branch_coverage: 70
+  
+  # Files to exclude from coverage
+  exclude:
+    - "test/**"
+    - "**/*.g.dart"
+    - "**/generated/**"
+  
+  # Output formats
+  formats:
+    - lcov
+    - html
+    - json
+
+# Test execution settings
+timeout: 30s
+concurrency: 4
+
+# Reporter settings
+reporter: expanded
