@@ -21,9 +21,9 @@ jobs:
           - os: windows-latest
             platform: windows-amd64
             executable: genhtml-windows-amd64.exe
-          - os: windows-latest
-            platform: windows-arm64
-            executable: genhtml-windows-arm64.exe
+          # - os: windows-latest
+          #   platform: windows-arm64
+          #   executable: genhtml-windows-arm64.exe
           # - os: ubuntu-latest
           #   platform: linux-amd64
           #   executable: genhtml-linux-amd64
