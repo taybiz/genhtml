@@ -148,9 +148,9 @@ jobs:
           echo "Release ${{ steps.get_version.outputs.version }}" > release_notes.txt
           echo "" >> release_notes.txt
           echo "Binary releases for multiple platforms:" >> release_notes.txt
-          echo "- Windows (AMD64, ARM64)" >> release_notes.txt
-          echo "- Linux (AMD64, ARM64)" >> release_notes.txt
-          echo "- macOS (AMD64, ARM64)" >> release_notes.txt
+          echo "- Windows (AMD64)" >> release_notes.txt
+          # echo "- Linux (AMD64, ARM64)" >> release_notes.txt
+          # echo "- macOS (AMD64, ARM64)" >> release_notes.txt
         fi
         cat release_notes.txt
 
@@ -176,55 +176,55 @@ jobs:
         asset_name: genhtml-windows-amd64.exe
         asset_content_type: application/octet-stream
 
-    - name: Upload Windows ARM64 binary
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release-assets/genhtml-windows-arm64.exe
-        asset_name: genhtml-windows-arm64.exe
-        asset_content_type: application/octet-stream
+    # - name: Upload Windows ARM64 binary
+    #   uses: actions/upload-release-asset@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+    #     asset_path: ./release-assets/genhtml-windows-arm64.exe
+    #     asset_name: genhtml-windows-arm64.exe
+    #     asset_content_type: application/octet-stream
 
-    - name: Upload Linux AMD64 binary
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release-assets/genhtml-linux-amd64
-        asset_name: genhtml-linux-amd64
-        asset_content_type: application/octet-stream
+    # - name: Upload Linux AMD64 binary
+    #   uses: actions/upload-release-asset@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+    #     asset_path: ./release-assets/genhtml-linux-amd64
+    #     asset_name: genhtml-linux-amd64
+    #     asset_content_type: application/octet-stream
 
-    - name: Upload Linux ARM64 binary
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release-assets/genhtml-linux-arm64
-        asset_name: genhtml-linux-arm64
-        asset_content_type: application/octet-stream
+    # - name: Upload Linux ARM64 binary
+    #   uses: actions/upload-release-asset@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+    #     asset_path: ./release-assets/genhtml-linux-arm64
+    #     asset_name: genhtml-linux-arm64
+    #     asset_content_type: application/octet-stream
 
-    - name: Upload macOS AMD64 binary
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release-assets/genhtml-macos-amd64
-        asset_name: genhtml-macos-amd64
-        asset_content_type: application/octet-stream
+    # - name: Upload macOS AMD64 binary
+    #   uses: actions/upload-release-asset@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+    #     asset_path: ./release-assets/genhtml-macos-amd64
+    #     asset_name: genhtml-macos-amd64
+    #     asset_content_type: application/octet-stream
 
-    - name: Upload macOS ARM64 binary
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./release-assets/genhtml-macos-arm64
-        asset_name: genhtml-macos-arm64
-        asset_content_type: application/octet-stream
+    # - name: Upload macOS ARM64 binary
+    #   uses: actions/upload-release-asset@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+    #     asset_path: ./release-assets/genhtml-macos-arm64
+    #     asset_name: genhtml-macos-arm64
+    #     asset_content_type: application/octet-stream
 
     - name: Upload checksums
       uses: actions/upload-release-asset@v1
