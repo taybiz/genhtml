@@ -38,10 +38,18 @@ class VersionUtils {
 
       final content = await pubspecFile.readAsString();
 
+      if (content.trim().isEmpty) {
+        throw VersionException('pubspec.yaml file is empty');
+      }
+
       // Parse the YAML content
       final YamlMap yamlMap;
       try {
-        yamlMap = loadYaml(content) as YamlMap;
+        final yamlContent = loadYaml(content);
+        if (yamlContent is! YamlMap) {
+          throw VersionException('pubspec.yaml must contain a YAML map');
+        }
+        yamlMap = yamlContent;
       } catch (e) {
         throw VersionException(
           'Failed to parse pubspec.yaml: Invalid YAML format - $e',
@@ -82,14 +90,22 @@ class VersionUtils {
   ///
   /// Throws [VersionException] if pubspec.yaml cannot be found.
   static Future<String> _findPubspecPath() async {
+    // First try the current directory
+    var pubspecFile = File('pubspec.yaml');
+    if (await pubspecFile.exists()) {
+      return pubspecFile.absolute.path;
+    }
+
+    // Then search up the directory tree with a safety limit
     var currentDir = Directory.current;
 
-    while (true) {
+    for (int i = 0; i < 10; i++) {
+      // Limit search depth to prevent infinite loops
       final pubspecPath = path.join(currentDir.path, 'pubspec.yaml');
-      final pubspecFile = File(pubspecPath);
+      pubspecFile = File(pubspecPath);
 
       if (await pubspecFile.exists()) {
-        return pubspecPath;
+        return pubspecFile.absolute.path;
       }
 
       // Check if we've reached the root directory
