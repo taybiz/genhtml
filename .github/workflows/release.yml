@@ -24,18 +24,18 @@ jobs:
           - os: windows-latest
             platform: windows-arm64
             executable: genhtml-windows-arm64.exe
-          - os: ubuntu-latest
-            platform: linux-amd64
-            executable: genhtml-linux-amd64
-          - os: ubuntu-latest
-            platform: linux-arm64
-            executable: genhtml-linux-arm64
-          - os: macos-latest
-            platform: macos-amd64
-            executable: genhtml-macos-amd64
-          - os: macos-latest
-            platform: macos-arm64
-            executable: genhtml-macos-arm64
+          # - os: ubuntu-latest
+          #   platform: linux-amd64
+          #   executable: genhtml-linux-amd64
+          # - os: ubuntu-latest
+          #   platform: linux-arm64
+          #   executable: genhtml-linux-arm64
+          # - os: macos-latest
+          #   platform: macos-amd64
+          #   executable: genhtml-macos-amd64
+          # - os: macos-latest
+          #   platform: macos-arm64
+          #   executable: genhtml-macos-arm64
 
     steps:
     - name: Checkout code
