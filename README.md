@@ -2,22 +2,22 @@
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/staylorx/genhtml-dart)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](https://github.com/staylorx/genhtml-dart/releases)
 
-A **Windows-native implementation** of the Linux `genhtml` tool for generating HTML coverage reports from LCOV trace files. This tool provides a **drop-in replacement** for the standard genhtml command, specifically designed for Windows developers who need coverage report generation without Linux compatibility layers.
+A **cross-platform implementation** of the Linux `genhtml` tool for generating HTML coverage reports from LCOV trace files. This tool provides a **drop-in replacement** for the standard genhtml command, with native binaries available for Windows, Linux, and macOS.
 
-## 🎯 **Why genhtml for Windows?**
+## 🎯 **Why This genhtml Implementation?**
 
-When working with code coverage on Windows, AI assistants and development tools often suggest using `genhtml` - but this tool isn't natively available on Windows without jumping through hoops like WSL or Cygwin. This project solves that problem by providing a **native Windows executable** that's fully compatible with the Linux genhtml interface.
+When working with code coverage, AI assistants and development tools often suggest using `genhtml` - but this tool isn't natively available on Windows without jumping through hoops like WSL or Cygwin, and can be missing on some Linux distributions. This project solves that problem by providing **native executables for all major platforms** that are fully compatible with the Linux genhtml interface.
 
 ## ✨ **Features**
 
-- 🪟 **Native Windows Support** - No WSL, Cygwin, or Linux compatibility layers required
+- 🌍 **Cross-Platform Support** - Native binaries for Windows, Linux, and macOS (Intel & ARM)
 - 🔄 **Drop-in Replacement** - Compatible command-line interface with Linux genhtml
 - 📊 **Complete LCOV Support** - Handles all standard LCOV trace file formats
 - 🎨 **Professional HTML Reports** - Clean, modern, and accessible coverage reports
 - 📈 **Coverage Metrics** - Line, function, and branch coverage with configurable thresholds
-- ⚡ **Standalone Executable** - Single `.exe` file for easy distribution
+- ⚡ **Standalone Executables** - Single binary files for easy distribution
 - 🧪 **Thoroughly Tested** - Comprehensive test suite with 63+ passing tests
 - 🎛️ **Flexible Configuration** - Extensive command-line options for customization
 
@@ -25,9 +25,13 @@ When working with code coverage on Windows, AI assistants and development tools 
 
 ### Option 1: Download Pre-compiled Executable
 
-1. Download `genhtml.exe` from the [releases page](https://github.com/staylorx/genhtml-dart/releases)
-2. Place it in your PATH or project directory
-3. Run: `genhtml.exe coverage.info`
+1. Go to the [releases page](https://github.com/staylorx/genhtml-dart/releases)
+2. Download the appropriate binary for your platform:
+   - **Windows**: `genhtml-windows-amd64.exe` or `genhtml-windows-arm64.exe`
+   - **Linux**: `genhtml-linux-amd64` or `genhtml-linux-arm64`
+   - **macOS**: `genhtml-macos-amd64` or `genhtml-macos-arm64`
+3. Place it in your PATH or project directory
+4. Run: `./genhtml-[platform] coverage.info` (or `genhtml-[platform].exe coverage.info` on Windows)
 
 ### Option 2: Compile from Source
 
@@ -51,14 +55,18 @@ dart compile exe bin/genhtml.dart -o genhtml.exe
 ### Basic Usage
 
 ```bash
-# Generate HTML report from LCOV file
-genhtml.exe coverage.info
+# Windows
+genhtml-windows-amd64.exe coverage.info
+
+# Linux/macOS (make executable first)
+chmod +x genhtml-linux-amd64
+./genhtml-linux-amd64 coverage.info
 
 # Specify output directory and title
-genhtml.exe coverage.info -o html_report --title "My Project Coverage"
+./genhtml-linux-amd64 coverage.info -o html_report --title "My Project Coverage"
 
 # Set coverage thresholds
-genhtml.exe coverage.info --line-threshold 80 --function-threshold 90
+./genhtml-linux-amd64 coverage.info --line-threshold 80 --function-threshold 90
 ```
 
 ### Command-Line Options

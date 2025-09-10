@@ -1,0 +1,237 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to create release for'
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-amd64
+            executable: genhtml-windows-amd64.exe
+          - os: windows-latest
+            platform: windows-arm64
+            executable: genhtml-windows-arm64.exe
+          - os: ubuntu-latest
+            platform: linux-amd64
+            executable: genhtml-linux-amd64
+          - os: ubuntu-latest
+            platform: linux-arm64
+            executable: genhtml-linux-arm64
+          - os: macos-latest
+            platform: macos-amd64
+            executable: genhtml-macos-amd64
+          - os: macos-latest
+            platform: macos-arm64
+            executable: genhtml-macos-arm64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Dart SDK
+      uses: dart-lang/setup-dart@v1
+      with:
+        sdk: '3.9.2'
+
+    - name: Install dependencies
+      run: dart pub get
+
+    - name: Run tests
+      run: dart test
+
+    - name: Build executable (Windows AMD64)
+      if: matrix.platform == 'windows-amd64'
+      run: dart compile exe bin/genhtml.dart -o ${{ matrix.executable }}
+
+    - name: Build executable (Windows ARM64)
+      if: matrix.platform == 'windows-arm64'
+      run: dart compile exe bin/genhtml.dart -o ${{ matrix.executable }} --target-os windows --target-arch arm64
+
+    - name: Build executable (Linux AMD64)
+      if: matrix.platform == 'linux-amd64'
+      run: dart compile exe bin/genhtml.dart -o ${{ matrix.executable }}
+
+    - name: Build executable (Linux ARM64)
+      if: matrix.platform == 'linux-arm64'
+      run: dart compile exe bin/genhtml.dart -o ${{ matrix.executable }} --target-os linux --target-arch arm64
+
+    - name: Build executable (macOS AMD64)
+      if: matrix.platform == 'macos-amd64'
+      run: dart compile exe bin/genhtml.dart -o ${{ matrix.executable }} --target-os macos --target-arch x64
+
+    - name: Build executable (macOS ARM64)
+      if: matrix.platform == 'macos-arm64'
+      run: dart compile exe bin/genhtml.dart -o ${{ matrix.executable }} --target-os macos --target-arch arm64
+
+    - name: Verify executable works
+      run: |
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          ./${{ matrix.executable }} --help
+        else
+          chmod +x ${{ matrix.executable }}
+          ./${{ matrix.executable }} --help
+        fi
+      shell: bash
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.platform }}
+        path: ${{ matrix.executable }}
+        retention-days: 1
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Get version from tag
+      id: get_version
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "version=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          echo "tag_name=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+
+    - name: Display structure of downloaded files
+      run: ls -la ./artifacts/
+
+    - name: Prepare release assets
+      run: |
+        mkdir -p ./release-assets
+        find ./artifacts -name "genhtml-*" -type f -exec cp {} ./release-assets/ \;
+        ls -la ./release-assets/
+
+    - name: Generate checksums
+      run: |
+        cd ./release-assets
+        sha256sum * > checksums.txt
+        cat checksums.txt
+
+    - name: Read changelog
+      id: changelog
+      run: |
+        if [[ -f "CHANGELOG.md" ]]; then
+          # Extract changelog for this version
+          awk '/^## \[?'${{ steps.get_version.outputs.version }}'/{flag=1; next} /^## \[?[0-9]/{flag=0} flag' CHANGELOG.md > release_notes.txt
+          if [[ ! -s release_notes.txt ]]; then
+            echo "No changelog entry found for version ${{ steps.get_version.outputs.version }}" > release_notes.txt
+          fi
+        else
+          echo "Release ${{ steps.get_version.outputs.version }}" > release_notes.txt
+          echo "" >> release_notes.txt
+          echo "Binary releases for multiple platforms:" >> release_notes.txt
+          echo "- Windows (AMD64, ARM64)" >> release_notes.txt
+          echo "- Linux (AMD64, ARM64)" >> release_notes.txt
+          echo "- macOS (AMD64, ARM64)" >> release_notes.txt
+        fi
+        cat release_notes.txt
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.get_version.outputs.tag_name }}
+        release_name: Release ${{ steps.get_version.outputs.version }}
+        body_path: release_notes.txt
+        draft: false
+        prerelease: false
+
+    - name: Upload Windows AMD64 binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release-assets/genhtml-windows-amd64.exe
+        asset_name: genhtml-windows-amd64.exe
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows ARM64 binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release-assets/genhtml-windows-arm64.exe
+        asset_name: genhtml-windows-arm64.exe
+        asset_content_type: application/octet-stream
+
+    - name: Upload Linux AMD64 binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release-assets/genhtml-linux-amd64
+        asset_name: genhtml-linux-amd64
+        asset_content_type: application/octet-stream
+
+    - name: Upload Linux ARM64 binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release-assets/genhtml-linux-arm64
+        asset_name: genhtml-linux-arm64
+        asset_content_type: application/octet-stream
+
+    - name: Upload macOS AMD64 binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release-assets/genhtml-macos-amd64
+        asset_name: genhtml-macos-amd64
+        asset_content_type: application/octet-stream
+
+    - name: Upload macOS ARM64 binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release-assets/genhtml-macos-arm64
+        asset_name: genhtml-macos-arm64
+        asset_content_type: application/octet-stream
+
+    - name: Upload checksums
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release-assets/checksums.txt
+        asset_name: checksums.txt
+        asset_content_type: text/plain
