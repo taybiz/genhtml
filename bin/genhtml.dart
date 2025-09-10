@@ -94,19 +94,19 @@ Future<void> main(List<String> arguments) async {
   try {
     final ArgResults results = argParser.parse(arguments);
 
-    // Handle help flag
+    // Handle help flag first - no validation needed
     if (results.flag('help')) {
       printUsage(argParser);
-      return;
+      exit(0);
     }
 
-    // Handle version flag
+    // Handle version flag first - no validation needed
     if (results.flag('version')) {
       print('genhtml version: $version');
-      return;
+      exit(0);
     }
 
-    // Validate command line arguments
+    // Only validate command line arguments if we're not showing help or version
     final validationResult = Validation.validateCommandLineArgs(arguments);
     if (!validationResult.isValid) {
       stderr.writeln('Error: ${validationResult.message}');
