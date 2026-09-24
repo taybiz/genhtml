@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `BACKLOG.md`: tracked build problems and Dart/Flutter Bible divergence
   ("Deviation:") items, from a full build/analyze/test audit.
+- `BACKLOG.md` "Bible section coverage": which doctrine sections the audit
+  compared and which are not applicable to a pure-Dart CLI (`05-persistence`,
+  `07-builders`, `08-flutter-ring`, `12-sources`).
+
+### Changed
+
+- `BACKLOG.md`: audit re-run 2026-09-24 on the Windows lane (Dart 3.13.1).
+  The whole-package `dart test` item was corrected — it is a flaky
+  `Directory.current` race, not a fixed red set (three runs of one commit:
+  2 failures, then green, then 5 failures) — and new items were recorded:
+  dead `repository:` / README-badge links, a stale `memory-bank/projectBrief.md`,
+  undocumented public members, the missing workspace/layer topology,
+  `ArgParser` instead of `CommandRunner`, a code sample in `CONTRIBUTING.md`,
+  D.R.Y. restatement of rules in project docs, and the Apache-2.0 license
+  versus the compact bible blob's recorded "MIT".
 
 ### Notes
 
