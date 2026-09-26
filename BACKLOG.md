@@ -99,11 +99,13 @@ reliably unreliable.
 
 ## Deviations
 
-- [ ] **Deviation: SDK constraint is `^3.9.2`, bible pins `>=3.10.0 <4.0.0`.**
+- [x] **Deviation: SDK constraint is `^3.9.2`, bible pins `>=3.10.0 <4.0.0`.**
   `pubspec.yaml` declares `environment: sdk: ^3.9.2`; the bible's Toolchain
   section (§2, "Dart SDK | `sdk: '>=3.10.0 <4.0.0'` — floor 3.10, never 4.x")
   requires `>=3.10.0 <4.0.0` in every pubspec. CI pins `sdk: '3.9.2'` in
   `.github/workflows/build.yml`, so both would have to move together.
+  **Resolved:** moved pubspec `environment.sdk` to `>=3.10.0 <4.0.0` and CI
+  `setup-dart` pin to `3.13.4` (latest stable in the toolchain) together.
 - [ ] **Deviation: no workspace, no layer packages, no repository seam (§3/§9).**
   The bible's Topology section (§3) sanctions exactly two layouts, both a pub
   workspace with `*_domain` / `*_usecases` / `*_datasource_*` (>=2 adapters) /

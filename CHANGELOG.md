@@ -26,6 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ArgParser` instead of `CommandRunner`, a code sample in `CONTRIBUTING.md`,
   D.R.Y. restatement of rules in project docs, and the Apache-2.0 license
   versus the compact bible blob's recorded "MIT".
+- **Decision — SDK constraint moved to bible floor.** `pubspec.yaml`
+  `environment.sdk` moved from `^3.9.2` to `'>=3.10.0 <4.0.0'` (bible §2:
+  floor 3.10, never 4.x), and the `.github/workflows/build.yml` `setup-dart`
+  pin moved from `3.9.2` to `3.13.4` (latest stable in the toolchain) so the
+  constraint and CI agree. Verified: `dart pub get` OK, `dart analyze
+  --fatal-infos --fatal-warnings` clean, whole-package `dart test` green,
+  `dart compile exe` OK.
 
 ### Notes
 

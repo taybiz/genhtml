@@ -23,7 +23,7 @@ jobs:
     - name: Setup Dart SDK
       uses: dart-lang/setup-dart@v1
       with:
-        sdk: '3.9.2'
+        sdk: '3.13.4'
     
     - name: Install dependencies
       run: dart pub get
@@ -50,7 +50,7 @@ jobs:
     - name: Setup Dart SDK
       uses: dart-lang/setup-dart@v1
       with:
-        sdk: '3.9.2'
+        sdk: '3.13.4'
     
     - name: Install dependencies
       run: dart pub get
