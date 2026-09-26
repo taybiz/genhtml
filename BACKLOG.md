@@ -157,10 +157,11 @@ reliably unreliable.
   gate (§2, §9 step 7). (Single-package CLI, so the onion is thin — still absent.)
 - [ ] **Deviation: error style is not declared loudly.**
   The bible requires every package to state whether consumers get FP-style
-  tuples or plain exceptions — in the barrel doc comment, the README, and
-  `AGENTS.md` on deviation (§4, §11). `lib/genhtml.dart` has a one-line barrel
-  doc comment but no error-style declaration; there is no `AGENTS.md`. Silence
-  is itself the violation.
+  tuples or plain exceptions — in the barrel doc comment, the README (§4,
+  §11); an `AGENTS.md` only if the package deviates from the FP default.
+  `lib/genhtml.dart` has a one-line barrel doc comment but no error-style
+  declaration. The choice itself is fine; not saying which one the consumer
+  holds is the violation.
 - [ ] **Deviation: dev-dependency stack does not match the bible.**
   Missing `shouldly`, `mocktail`, and `dart_arch_test`; `fpdart` and `equatable`
   (core-stack) are absent. `pubspec.yaml` dev deps are `lints`, `test`, `io`,
