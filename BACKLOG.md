@@ -9,7 +9,7 @@ run on the Windows lane (Dart 3.13.1, Windows x64):
 `dart compile exe` -> `dart pub publish --dry-run`.
 
 Items under **Deviations** compare the code against the Dart/Flutter Bible
-(<https://github.com/staylorx/dart-flutter-bible>, `docs/01`-`docs/12`). A
+(<https://github.com/taybiz/dart-flutter-bible>, `docs/01`-`docs/12`). A
 deviation is a place the code differs from the bible where the bible might
 itself be wrong, so each one is flagged for later review rather than "fixed"
 on sight. Which sections were compared is recorded in **Bible section
@@ -194,7 +194,7 @@ reliably unreliable.
 
 ## Bible section coverage (last audit, 2026-09-24)
 
-Compared against `docs/01`-`docs/12` of staylorx/dart-flutter-bible
+Compared against `docs/01`-`docs/12` of taybiz/dart-flutter-bible
 (`00-compact` read as the derived index, not as authority):
 `01-architecture`, `02-toolchain`, `03-topology`, `04-functional-core`,
 `06-testing`, `09-bootstrap-checklist`, `10-review-checklist`, `11-decisions`.
