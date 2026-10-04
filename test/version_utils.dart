@@ -25,10 +25,10 @@ class VersionUtils {
   ///   print('Error getting version: $e');
   /// }
   /// ```
-  static Future<String> getVersionFromPubspec() async {
+  static Future<String> getVersionFromPubspec({Directory? from}) async {
     try {
       // Find the project root by looking for pubspec.yaml
-      final pubspecPath = await _findPubspecPath();
+      final pubspecPath = await _findPubspecPath(from);
 
       // Read the pubspec.yaml file
       final pubspecFile = File(pubspecPath);
@@ -89,20 +89,17 @@ class VersionUtils {
   /// Returns the full path to the pubspec.yaml file.
   ///
   /// Throws [VersionException] if pubspec.yaml cannot be found.
-  static Future<String> _findPubspecPath() async {
-    // First try the current directory
-    var pubspecFile = File('pubspec.yaml');
-    if (await pubspecFile.exists()) {
-      return pubspecFile.absolute.path;
-    }
-
-    // Then search up the directory tree with a safety limit
-    var currentDir = Directory.current;
+  static Future<String> _findPubspecPath(Directory? from) async {
+    // Search upward from [from] — the process-global working directory by
+    // default — with a safety limit. Callers (tests) inject a root instead of
+    // mutating `Directory.current`, which is process-global and races with
+    // concurrently-run test suites.
+    var currentDir = from ?? Directory.current;
 
     for (int i = 0; i < 10; i++) {
       // Limit search depth to prevent infinite loops
       final pubspecPath = path.join(currentDir.path, 'pubspec.yaml');
-      pubspecFile = File(pubspecPath);
+      final pubspecFile = File(pubspecPath);
 
       if (await pubspecFile.exists()) {
         return pubspecFile.absolute.path;

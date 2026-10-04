@@ -1,23 +1,25 @@
+import 'package:equatable/equatable.dart';
+
 import 'source_file.dart';
 
-/// Represents overall coverage summary statistics across all source files.
-class CoverageSummary {
-  /// Total number of lines across all files
+/// Entity describing overall coverage summary statistics across all files.
+class CoverageSummary extends Equatable {
+  /// Total number of lines across all files.
   final int totalLines;
 
-  /// Number of lines that were hit (covered) across all files
+  /// Number of lines that were hit (covered) across all files.
   final int hitLines;
 
-  /// Total number of functions across all files
+  /// Total number of functions across all files.
   final int totalFunctions;
 
-  /// Number of functions that were hit (covered) across all files
+  /// Number of functions that were hit (covered) across all files.
   final int hitFunctions;
 
-  /// Total number of branches across all files
+  /// Total number of branches across all files.
   final int totalBranches;
 
-  /// Number of branches that were hit (covered) across all files
+  /// Number of branches that were hit (covered) across all files.
   final int hitBranches;
 
   /// Creates a new coverage summary instance.
@@ -30,7 +32,7 @@ class CoverageSummary {
     required this.hitBranches,
   });
 
-  /// Creates an empty coverage summary
+  /// Creates an empty coverage summary.
   const CoverageSummary.empty()
     : totalLines = 0,
       hitLines = 0,
@@ -39,7 +41,7 @@ class CoverageSummary {
       totalBranches = 0,
       hitBranches = 0;
 
-  /// Creates a coverage summary from a list of source files
+  /// Creates a coverage summary by folding over [sourceFiles].
   factory CoverageSummary.fromSourceFiles(List<SourceFile> sourceFiles) {
     int totalLines = 0;
     int hitLines = 0;
@@ -67,25 +69,25 @@ class CoverageSummary {
     );
   }
 
-  /// Line coverage percentage (0.0 to 100.0)
+  /// Line coverage percentage (0.0 to 100.0).
   double get lineCoveragePercentage {
     if (totalLines == 0) return 100.0;
     return (hitLines / totalLines) * 100.0;
   }
 
-  /// Function coverage percentage (0.0 to 100.0)
+  /// Function coverage percentage (0.0 to 100.0).
   double get functionCoveragePercentage {
     if (totalFunctions == 0) return 100.0;
     return (hitFunctions / totalFunctions) * 100.0;
   }
 
-  /// Branch coverage percentage (0.0 to 100.0)
+  /// Branch coverage percentage (0.0 to 100.0).
   double get branchCoveragePercentage {
     if (totalBranches == 0) return 100.0;
     return (hitBranches / totalBranches) * 100.0;
   }
 
-  /// Overall coverage percentage (average of line, function, and branch coverage)
+  /// Overall coverage percentage (average of line, function and branch coverage).
   double get overallCoveragePercentage {
     double total = lineCoveragePercentage;
     int count = 1;
@@ -103,36 +105,36 @@ class CoverageSummary {
     return total / count;
   }
 
-  /// Returns true if line coverage meets the specified threshold
+  /// Returns true if line coverage meets the specified threshold.
   bool meetsLineCoverageThreshold(double threshold) {
     return lineCoveragePercentage >= threshold;
   }
 
-  /// Returns true if function coverage meets the specified threshold
+  /// Returns true if function coverage meets the specified threshold.
   bool meetsFunctionCoverageThreshold(double threshold) {
     return functionCoveragePercentage >= threshold;
   }
 
-  /// Returns true if branch coverage meets the specified threshold
+  /// Returns true if branch coverage meets the specified threshold.
   bool meetsBranchCoverageThreshold(double threshold) {
     return branchCoveragePercentage >= threshold;
   }
 
-  /// Returns true if overall coverage meets the specified threshold
+  /// Returns true if overall coverage meets the specified threshold.
   bool meetsOverallCoverageThreshold(double threshold) {
     return overallCoveragePercentage >= threshold;
   }
 
-  /// Formats line coverage as a string (e.g., "85/100")
+  /// Formats line coverage as a string (e.g. `"85/100"`).
   String get linesCoverageString => '$hitLines/$totalLines';
 
-  /// Formats function coverage as a string (e.g., "12/15")
+  /// Formats function coverage as a string (e.g. `"12/15"`).
   String get functionsCoverageString => '$hitFunctions/$totalFunctions';
 
-  /// Formats branch coverage as a string (e.g., "8/10")
+  /// Formats branch coverage as a string (e.g. `"8/10"`).
   String get branchesCoverageString => '$hitBranches/$totalBranches';
 
-  /// Creates a copy of this summary with updated values
+  /// Creates a copy of this summary with the given fields replaced.
   CoverageSummary copyWith({
     int? totalLines,
     int? hitLines,
@@ -152,6 +154,16 @@ class CoverageSummary {
   }
 
   @override
+  List<Object?> get props => [
+    totalLines,
+    hitLines,
+    totalFunctions,
+    hitFunctions,
+    totalBranches,
+    hitBranches,
+  ];
+
+  @override
   String toString() {
     return 'CoverageSummary('
         'lines: $linesCoverageString (${lineCoveragePercentage.toStringAsFixed(1)}%), '
@@ -159,26 +171,4 @@ class CoverageSummary {
         'branches: $branchesCoverageString (${branchCoveragePercentage.toStringAsFixed(1)}%)'
         ')';
   }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is CoverageSummary &&
-        other.totalLines == totalLines &&
-        other.hitLines == hitLines &&
-        other.totalFunctions == totalFunctions &&
-        other.hitFunctions == hitFunctions &&
-        other.totalBranches == totalBranches &&
-        other.hitBranches == hitBranches;
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    totalLines,
-    hitLines,
-    totalFunctions,
-    hitFunctions,
-    totalBranches,
-    hitBranches,
-  );
 }

@@ -94,14 +94,10 @@ void main() {
       expect(normalized, equals(expectedNormalized));
     });
 
-    test(
-      'should handle empty HTML content',
-      () {
-        const emptyHtml = '';
-        TestUtils.validateHtmlStructure(emptyHtml);
-      },
-      skip: 'This test should fail - empty HTML is invalid',
-    );
+    test('should handle empty HTML content', () {
+      const emptyHtml = '';
+      TestUtils.validateHtmlStructure(emptyHtml);
+    }, skip: 'This test should fail - empty HTML is invalid');
 
     test('should handle malformed HTML gracefully', () {
       const malformedHtml =

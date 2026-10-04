@@ -15,12 +15,14 @@ void main() {
     });
 
     tearDown(() async {
-      // Restore original working directory
-      Directory.current = originalWorkingDir;
       await TestUtils.cleanupTempDirectory(tempDir);
     });
 
     group('getVersionFromPubspec', () {
+      // Every test injects its root via `from:` rather than mutating the
+      // process-global `Directory.current`. `dart test` runs suites
+      // concurrently in one process, so a mutated CWD would race with sibling
+      // suites that resolve relative paths.
       test(
         'should successfully read version from valid pubspec.yaml',
         () async {
@@ -35,10 +37,9 @@ environment:
           final pubspecFile = File(path.join(tempDir.path, 'pubspec.yaml'));
           await pubspecFile.writeAsString(pubspecContent);
 
-          // Change to temp directory
-          Directory.current = tempDir.path;
-
-          final version = await VersionUtils.getVersionFromPubspec();
+          final version = await VersionUtils.getVersionFromPubspec(
+            from: tempDir,
+          );
           expect(version, equals('2.1.0'));
         },
       );
@@ -51,9 +52,7 @@ version: 1.0.0+build.123
         final pubspecFile = File(path.join(tempDir.path, 'pubspec.yaml'));
         await pubspecFile.writeAsString(pubspecContent);
 
-        Directory.current = tempDir.path;
-
-        final version = await VersionUtils.getVersionFromPubspec();
+        final version = await VersionUtils.getVersionFromPubspec(from: tempDir);
         expect(version, equals('1.0.0+build.123'));
       });
 
@@ -65,9 +64,7 @@ version: 1.0.0-rc1
         final pubspecFile = File(path.join(tempDir.path, 'pubspec.yaml'));
         await pubspecFile.writeAsString(pubspecContent);
 
-        Directory.current = tempDir.path;
-
-        final version = await VersionUtils.getVersionFromPubspec();
+        final version = await VersionUtils.getVersionFromPubspec(from: tempDir);
         expect(version, equals('1.0.0-rc1'));
       });
 
@@ -79,9 +76,7 @@ version:   1.0.0
         final pubspecFile = File(path.join(tempDir.path, 'pubspec.yaml'));
         await pubspecFile.writeAsString(pubspecContent);
 
-        Directory.current = tempDir.path;
-
-        final version = await VersionUtils.getVersionFromPubspec();
+        final version = await VersionUtils.getVersionFromPubspec(from: tempDir);
         expect(version, equals('1.0.0'));
       });
 
@@ -94,12 +89,11 @@ version: 1.5.0
         final pubspecFile = File(path.join(tempDir.path, 'pubspec.yaml'));
         await pubspecFile.writeAsString(pubspecContent);
 
-        // Create a subdirectory and change to it
+        // Create a subdirectory and search from there
         final subDir = Directory(path.join(tempDir.path, 'subdir'));
         await subDir.create();
-        Directory.current = subDir.path;
 
-        final version = await VersionUtils.getVersionFromPubspec();
+        final version = await VersionUtils.getVersionFromPubspec(from: subDir);
         expect(version, equals('1.5.0'));
       });
 
@@ -112,25 +106,22 @@ version: 3.2.1
         final pubspecFile = File(path.join(tempDir.path, 'pubspec.yaml'));
         await pubspecFile.writeAsString(pubspecContent);
 
-        // Create nested subdirectories and change to the deepest one
+        // Create nested subdirectories and search from the deepest one
         final deepDir = Directory(
           path.join(tempDir.path, 'level1', 'level2', 'level3'),
         );
         await deepDir.create(recursive: true);
-        Directory.current = deepDir.path;
 
-        final version = await VersionUtils.getVersionFromPubspec();
+        final version = await VersionUtils.getVersionFromPubspec(from: deepDir);
         expect(version, equals('3.2.1'));
       });
 
       test(
         'should throw VersionException when pubspec.yaml not found',
         () async {
-          // Change to temp directory without pubspec.yaml
-          Directory.current = tempDir.path;
-
+          // Search from a temp directory that has no pubspec.yaml
           expect(
-            () async => await VersionUtils.getVersionFromPubspec(),
+            () async => await VersionUtils.getVersionFromPubspec(from: tempDir),
             throwsA(
               isA<VersionException>().having(
                 (e) => e.message,
@@ -152,10 +143,8 @@ malformed yaml content [
         final pubspecFile = File(path.join(tempDir.path, 'pubspec.yaml'));
         await pubspecFile.writeAsString(malformedContent);
 
-        Directory.current = tempDir.path;
-
         expect(
-          () async => await VersionUtils.getVersionFromPubspec(),
+          () async => await VersionUtils.getVersionFromPubspec(from: tempDir),
           throwsA(
             isA<VersionException>().having(
               (e) => e.message,
@@ -178,10 +167,8 @@ environment:
           final pubspecFile = File(path.join(tempDir.path, 'pubspec.yaml'));
           await pubspecFile.writeAsString(pubspecContent);
 
-          Directory.current = tempDir.path;
-
           expect(
-            () async => await VersionUtils.getVersionFromPubspec(),
+            () async => await VersionUtils.getVersionFromPubspec(from: tempDir),
             throwsA(
               isA<VersionException>().having(
                 (e) => e.message,
@@ -203,10 +190,8 @@ version: 123
           final pubspecFile = File(path.join(tempDir.path, 'pubspec.yaml'));
           await pubspecFile.writeAsString(pubspecContent);
 
-          Directory.current = tempDir.path;
-
           expect(
-            () async => await VersionUtils.getVersionFromPubspec(),
+            () async => await VersionUtils.getVersionFromPubspec(from: tempDir),
             throwsA(
               isA<VersionException>().having(
                 (e) => e.message,
@@ -228,10 +213,8 @@ version: ""
           final pubspecFile = File(path.join(tempDir.path, 'pubspec.yaml'));
           await pubspecFile.writeAsString(pubspecContent);
 
-          Directory.current = tempDir.path;
-
           expect(
-            () async => await VersionUtils.getVersionFromPubspec(),
+            () async => await VersionUtils.getVersionFromPubspec(from: tempDir),
             throwsA(
               isA<VersionException>().having(
                 (e) => e.message,
@@ -253,10 +236,8 @@ version: "   "
           final pubspecFile = File(path.join(tempDir.path, 'pubspec.yaml'));
           await pubspecFile.writeAsString(pubspecContent);
 
-          Directory.current = tempDir.path;
-
           expect(
-            () async => await VersionUtils.getVersionFromPubspec(),
+            () async => await VersionUtils.getVersionFromPubspec(from: tempDir),
             throwsA(
               isA<VersionException>().having(
                 (e) => e.message,
@@ -269,10 +250,11 @@ version: "   "
       );
 
       test('should work from project root directory', () async {
-        // This test uses the actual project's pubspec.yaml
-        Directory.current = originalWorkingDir;
-
-        final version = await VersionUtils.getVersionFromPubspec();
+        // This test uses the actual project's pubspec.yaml, resolved from the
+        // original working directory captured in setUp.
+        final version = await VersionUtils.getVersionFromPubspec(
+          from: Directory(originalWorkingDir),
+        );
         expect(version, isNotEmpty);
         expect(version, matches(RegExp(r'^\d+\.\d+\.\d+.*')));
       });

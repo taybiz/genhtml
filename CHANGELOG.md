@@ -9,35 +9,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `BACKLOG.md`: tracked build problems and Dart/Flutter Bible divergence
-  ("Deviation:") items, from a full build/analyze/test audit.
-- `BACKLOG.md` "Bible section coverage": which doctrine sections the audit
-  compared and which are not applicable to a pure-Dart CLI (`05-persistence`,
-  `07-builders`, `08-flutter-ring`, `12-sources`).
+- **Decision — clean-architecture breakout, proportionate to the CLI.**
+  `lib/` is now `domain/` (entities, failures, validation, usecases),
+  `datasources/` (adapters), `generators/` and `utils/`, instead of a flat
+  `models/parsers/generators/utils`. Entities and use cases are separated
+  (`ParseLcovUseCase`, `GenerateHtmlReportUseCase`), and file I/O moved behind
+  `LcovFileDatasource` / `HtmlReportDatasource`. **Not** adopted: the bible's
+  §3 pub-workspace topology with `*_domain` / `*_usecases` / `*_datasource_*`
+  / delivery packages — a four-file, single-binary CLI is below the size where
+  the multi-package onion pays for itself, and §3's acceptable-layout rule
+  exists precisely so a single-delivery-mechanism case can stay flat. Revisit
+  if a second delivery mechanism (library, service) ever appears.
+- `.gitattributes` pinning line endings (`* text=auto eol=lf`; Windows
+  scripts `eol=crlf`), with the index renormalized.
 
 ### Changed
 
-- `BACKLOG.md`: audit re-run 2026-09-24 on the Windows lane (Dart 3.13.1).
-  The whole-package `dart test` item was corrected — it is a flaky
-  `Directory.current` race, not a fixed red set (three runs of one commit:
-  2 failures, then green, then 5 failures) — and new items were recorded:
-  dead `repository:` / README-badge links, a stale `memory-bank/projectBrief.md`,
-  undocumented public members, the missing workspace/layer topology,
-  `ArgParser` instead of `CommandRunner`, a code sample in `CONTRIBUTING.md`,
-  D.R.Y. restatement of rules in project docs, and the Apache-2.0 license
-  versus the compact bible blob's recorded "MIT".
-- **Decision — SDK constraint moved to bible floor.** `pubspec.yaml`
-  `environment.sdk` moved from `^3.9.2` to `'>=3.10.0 <4.0.0'` (bible §2:
-  floor 3.10, never 4.x), and the `.github/workflows/build.yml` `setup-dart`
-  pin moved from `3.9.2` to `3.13.4` (latest stable in the toolchain) so the
-  constraint and CI agree. Verified: `dart pub get` OK, `dart analyze
-  --fatal-infos --fatal-warnings` clean, whole-package `dart test` green,
-  `dart compile exe` OK.
+- **Decision — failure as a value (functional core).** The core no longer
+  throws: `ParseLcovUseCase` and `Validation` return
+  `Either<GenhtmlFailure, T>`, and the datasource adapters return
+  `TaskEither<GenhtmlFailure, T>`. Failures are a sealed hierarchy
+  (`ParseFailure`, `ValidationFailure`, `IoFailure`). `fpdart` is now a
+  dependency; `try`/`catch` is confined to the two adapters, where `dart:io`
+  is wrapped once by `TaskEither.tryCatch`. The single permitted throw surface
+  is `bin/genhtml.dart`, which maps a returned `Left` to stderr + exit code.
+- **Decision — `equatable` on every entity and value object.** Hand-rolled
+  `operator ==` / `hashCode` on the coverage models was replaced by
+  `extends Equatable` with a `props` list.
+- **Decision — analysis gate raised to the bible's.** `analysis_options.yaml`
+  turns `public_member_api_docs` on and makes `todo` an error; CI now runs
+  `dart analyze --fatal-infos --fatal-warnings` (was a bare `dart analyze`).
+  Every public member in `lib/` is documented. Both workflows pin Dart 3.13.4.
+- **Decision — SDK constraint.** `pubspec.yaml` `environment.sdk` is
+  `'>=3.10.0 <4.0.0'`, and the *release* workflow `setup-dart` pin moved from
+  `3.9.2` to `3.13.4`, so both CI lanes and the constraint agree (the build
+  lane was already on 3.13.4).
+- **Decision — docs reference doctrine instead of restating it (D.R.Y.).**
+  `CONTRIBUTING.md` lost its "Code Style" / "Code Quality" / "Key Principles"
+  rule lists and its inline Dart code sample; it now links the relevant
+  Dart/Flutter Bible sections. `README.md` gained an *Error style* section and
+  a doctrine link, no longer restates code rules, and its dead
+  `staylorx/genhtml-dart` links now point at `taybiz/genhtml`.
+- **Decision — error style declared loudly.** The barrel `lib/genhtml.dart`
+  (and the README) states that consumers receive failures as values, never
+  exceptions, and names the single throw surface. *Not added:* `AGENTS.md` —
+  the bible requires that file only when a package *deviates* from the
+  functional-core default, and this package follows it (see the resolved
+  BACKLOG item).
+- **Fix — whole-package `dart test` no longer flakes.** The
+  `Directory.current` race is gone:
+  `VersionUtils.getVersionFromPubspec` accepts an injectable `from:` directory
+  so `version_test` no longer mutates the process-global CWD, and `TestUtils`
+  resolves fixtures from the package root rather than a relative path. Five
+  consecutive `dart test` runs are green.
 
-### Notes
+### Removed
 
-- `1.0.1` is published (`pubspec.yaml` / `bin/genhtml.dart`) but has no
-  CHANGELOG entry here; it needs to be backfilled.
+- Unused `io: ^1.0.0` dev dependency (never imported; its API duplicates
+  `dart:io`).
+- `lib/src/models/*`, `lib/src/parsers/lcov_parser.dart`,
+  `lib/src/generators/html_generator.dart`, `lib/src/utils/validation.dart` —
+  superseded by the domain entities, use cases and datasources above.
+
+## [1.0.1] - 2025-09-09
+
+### Fixed
+
+- Backfilled entry: `1.0.1` was published (`pubspec.yaml` / `bin/genhtml.dart`)
+  with no changelog section of its own.
 
 ## [1.0.0] - 2025-09-09
 

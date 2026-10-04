@@ -1,7 +1,17 @@
+# Analysis gate for the genhtml package.
+#
+# The Dart/Flutter Bible (§2) requires: `public_member_api_docs` ON, `todo` as
+# an error, and a CI gate of `dart analyze --fatal-infos --fatal-warnings`
+# (CLEAN == zero diagnostics of ANY severity). See BACKLOG.md / CHANGELOG.md.
 include: package:lints/recommended.yaml
-# linter:
-#   rules:
-#     - camel_case_types
-# analyzer:
-#   exclude:
-#     - path/to/excluded/files/**
+
+analyzer:
+  errors:
+    # A dangling TODO is a hard failure, not a note.
+    todo: error
+    # Every public member must carry a `///` doc comment.
+    public_member_api_docs: error
+
+linter:
+  rules:
+    - public_member_api_docs

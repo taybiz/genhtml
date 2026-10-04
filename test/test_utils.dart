@@ -4,9 +4,34 @@ import 'package:test/test.dart';
 
 /// Test utilities for the genhtml project
 class TestUtils {
-  /// Get the path to a test fixture file
+  /// The package root, resolved once and cached.
+  ///
+  /// Fixture paths are resolved from here rather than from the process-global
+  /// working directory (`Directory.current`), which test suites run
+  /// concurrently in one process can otherwise race over.
+  static String get projectRoot {
+    if (_projectRoot != null) return _projectRoot!;
+
+    var dir = Directory.current;
+    for (var i = 0; i < 10; i++) {
+      if (File(path.join(dir.path, 'pubspec.yaml')).existsSync()) {
+        _projectRoot = dir.path;
+        return _projectRoot!;
+      }
+      final parent = dir.parent;
+      if (parent.path == dir.path) break;
+      dir = parent;
+    }
+
+    _projectRoot = Directory.current.path;
+    return _projectRoot!;
+  }
+
+  static String? _projectRoot;
+
+  /// Get the path to a test fixture file, resolved from the package root.
   static String getFixturePath(String filename) {
-    return path.join('test', 'fixtures', filename);
+    return path.join(projectRoot, 'test', 'fixtures', filename);
   }
 
   /// Load the contents of a test fixture file
@@ -169,7 +194,7 @@ class TestUtils {
 
   /// Get all fixture files
   static Future<List<String>> getFixtureFiles() async {
-    final fixturesDir = Directory(path.join('test', 'fixtures'));
+    final fixturesDir = Directory(path.join(projectRoot, 'test', 'fixtures'));
     if (!await fixturesDir.exists()) {
       return [];
     }

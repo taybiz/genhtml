@@ -1,0 +1,13 @@
+# Normalize every text file to LF in the repository, on every platform.
+# A contributing checkout on Windows then writes LF, so the working tree never
+# drifts from the index. See BACKLOG.md "Project hygiene".
+* text=auto eol=lf
+
+# Windows scripts keep CRLF so cmd.exe / PowerShell parse them predictably.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Compiled binaries are compared byte-for-byte, never line-converted.
+*.exe binary
+*.dll binary

@@ -1,7 +1,7 @@
 name: genhtml
 description: A Windows-native implementation of genhtml for generating HTML coverage reports from LCOV trace files. Drop-in replacement for the Linux genhtml tool.
 version: 1.0.1
-repository: https://github.com/staylorx/genhtml-dart
+repository: https://github.com/taybiz/genhtml
 
 environment:
   sdk: '>=3.10.0 <4.0.0'
@@ -11,9 +11,12 @@ dependencies:
   args: ^2.7.0
   path: ^1.8.0
   yaml: ^3.1.0
+  # Functional core: failure-as-a-value (`Either` / `TaskEither`) and `Option`.
+  fpdart: ^1.1.0
+  # Structural equality for entities and value objects via `props`.
+  equatable: ^2.0.7
 
 dev_dependencies:
   lints: ^6.0.0
   test: ^1.25.6
-  io: ^1.0.0
   coverage: ^1.6.0
