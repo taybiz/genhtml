@@ -1,45 +1,48 @@
-import 'package:path/path.dart' as path;
-import '../models/coverage_data.dart';
-import '../models/source_file.dart';
-import '../models/line_coverage.dart';
-import '../utils/coverage_calculator.dart';
-import '../utils/file_utils.dart';
-import 'css_generator.dart';
+import '../entities/coverage_data.dart';
+import '../entities/html_report_options.dart';
+import '../entities/line_coverage.dart';
+import '../entities/source_file.dart';
+import '../../generators/css_generator.dart';
+import '../../utils/coverage_calculator.dart';
 
-/// Generator for HTML coverage reports from coverage data.
-class HtmlGenerator {
-  /// Configuration options for HTML generation
-  final HtmlGeneratorOptions options;
+/// Pure use case that renders a [CoverageData] into HTML report pages.
+///
+/// Rendering is a *total* function of already-parsed data: it cannot fail, so
+/// it returns the pages directly (a `Map` from report-relative path to HTML)
+/// rather than an `Either`. Writing the pages to disk is the fallible part and
+/// lives in `HtmlReportDatasource`. This class never throws and never touches
+/// the file system.
+///
+/// The returned map always contains `index.html` plus one page per source file,
+/// named by flattening the source path (separators replaced with `_`).
+class GenerateHtmlReportUseCase {
+  /// Creates the HTML report use case.
+  const GenerateHtmlReportUseCase();
 
-  /// Creates a new HTML generator with the specified options
-  const HtmlGenerator({required this.options});
+  /// Renders [coverageData] into a map of `index.html` and per-file pages.
+  Map<String, String> call(
+    CoverageData coverageData, {
+    HtmlReportOptions options = const HtmlReportOptions(),
+  }) {
+    final pages = <String, String>{
+      'index.html': _indexHtml(coverageData, options),
+    };
 
-  /// Generates HTML coverage report from coverage data
-  Future<void> generateReport(CoverageData coverageData) async {
-    // Ensure output directory exists
-    await FileUtils.ensureDirectoryExists(options.outputDirectory);
-
-    // Generate index.html
-    final indexHtml = generateIndexHtml(coverageData);
-    final indexPath = path.join(options.outputDirectory, 'index.html');
-    await FileUtils.writeStringToFile(indexPath, indexHtml);
-
-    // Generate individual source file HTML pages
     for (final sourceFile in coverageData.sourceFiles) {
-      final sourceHtml = generateSourceFileHtml(sourceFile, coverageData);
-      final sourceFileName = _getSourceFileHtmlName(sourceFile.path);
-      final sourcePath = path.join(options.outputDirectory, sourceFileName);
-
-      // Ensure subdirectories exist for nested files
-      await FileUtils.ensureDirectoryExists(path.dirname(sourcePath));
-      await FileUtils.writeStringToFile(sourcePath, sourceHtml);
+      final name = sourceFileName(sourceFile.path);
+      pages[name] = _sourceFileHtml(sourceFile, coverageData, options);
     }
+
+    return pages;
   }
 
-  /// Generates the main index HTML file
-  String generateIndexHtml(CoverageData coverageData) {
-    final timestamp = _formatTimestamp(coverageData.timestamp);
-    final sortedFiles = _sortSourceFiles(coverageData.sourceFiles);
+  /// The report-relative HTML file name for a source file [path].
+  String sourceFileName(String path) =>
+      '${path.replaceAll('/', '_').replaceAll('\\', '_')}.html';
+
+  String _indexHtml(CoverageData data, HtmlReportOptions options) {
+    final timestamp = _formatTimestamp(data.timestamp);
+    final sortedFiles = _sortSourceFiles(data.sourceFiles);
 
     return '''<!DOCTYPE html>
 <html>
@@ -56,12 +59,12 @@ class HtmlGenerator {
     
     <div class="summary">
         <h2>Summary</h2>
-        ${_generateSummaryTable(coverageData.summary)}
+        ${_summaryTable(data, options)}
     </div>
     
     <div class="files">
         <h2>Files</h2>
-        ${_generateFileListTable(sortedFiles)}
+        ${_fileListTable(sortedFiles, options)}
     </div>
     
     <div class="footer">
@@ -71,14 +74,14 @@ class HtmlGenerator {
 </html>''';
   }
 
-  /// Generates HTML for a specific source file
-  String generateSourceFileHtml(
+  String _sourceFileHtml(
     SourceFile sourceFile,
-    CoverageData coverageData,
+    CoverageData data,
+    HtmlReportOptions options,
   ) {
-    final timestamp = _formatTimestamp(coverageData.timestamp);
-    final breadcrumb = _generateBreadcrumb(sourceFile.path);
-    final sourceCode = _generateSourceCodeDisplay(sourceFile);
+    final timestamp = _formatTimestamp(data.timestamp);
+    final breadcrumb = _breadcrumb(sourceFile.path);
+    final sourceCode = _sourceCode(sourceFile);
 
     return '''<!DOCTYPE html>
 <html>
@@ -97,7 +100,7 @@ class HtmlGenerator {
     
     <div class="summary">
         <h2>File: ${_escapeHtml(sourceFile.path)}</h2>
-        ${_generateFileSummaryTable(sourceFile)}
+        ${_fileSummaryTable(sourceFile, options)}
     </div>
     
     <div class="source-code">
@@ -111,8 +114,8 @@ class HtmlGenerator {
 </html>''';
   }
 
-  /// Generates the summary table for overall coverage
-  String _generateSummaryTable(dynamic summary) {
+  String _summaryTable(CoverageData data, HtmlReportOptions options) {
+    final summary = data.summary;
     return '''<table class="coverage-table">
             <tr>
                 <th>Metric</th>
@@ -131,8 +134,10 @@ class HtmlGenerator {
         </table>''';
   }
 
-  /// Generates the file list table
-  String _generateFileListTable(List<SourceFile> sourceFiles) {
+  String _fileListTable(
+    List<SourceFile> sourceFiles,
+    HtmlReportOptions options,
+  ) {
     final buffer = StringBuffer();
 
     buffer.writeln('<table class="coverage-table">');
@@ -157,7 +162,7 @@ class HtmlGenerator {
     for (final sourceFile in sourceFiles) {
       buffer.writeln('    <tr>');
       buffer.writeln(
-        '        <td><a href="${_getSourceFileHtmlName(sourceFile.path)}" class="file-link">${_escapeHtml(sourceFile.path)}</a></td>',
+        '        <td><a href="${sourceFileName(sourceFile.path)}" class="file-link">${_escapeHtml(sourceFile.path)}</a></td>',
       );
       buffer.writeln(
         '        <td class="${CssGenerator.getCoverageClass(sourceFile.lineCoveragePercentage)}">${CoverageCalculator.formatCoveragePercentage(sourceFile.lineCoveragePercentage)}</td>',
@@ -198,8 +203,7 @@ class HtmlGenerator {
     return buffer.toString();
   }
 
-  /// Generates the summary table for a specific file
-  String _generateFileSummaryTable(SourceFile sourceFile) {
+  String _fileSummaryTable(SourceFile sourceFile, HtmlReportOptions options) {
     return '''<table class="coverage-table">
             <tr>
                 <th>Metric</th>
@@ -228,56 +232,43 @@ class HtmlGenerator {
         </table>''';
   }
 
-  /// Generates breadcrumb navigation
-  String _generateBreadcrumb(String filePath) {
+  String _breadcrumb(String filePath) {
     final parts = filePath.split('/');
     final buffer = StringBuffer();
 
     buffer.writeln('<div class="breadcrumb">');
     buffer.write('<a href="index.html">Coverage Report</a>');
 
-    for (int i = 0; i < parts.length; i++) {
+    for (final part in parts) {
       buffer.write('<span class="separator">»</span>');
-
-      if (i == parts.length - 1) {
-        // Last part (filename) - not a link
-        buffer.write('<span>${_escapeHtml(parts[i])}</span>');
-      } else {
-        // Directory part - could be a link to directory index if we implement it
-        buffer.write('<span>${_escapeHtml(parts[i])}</span>');
-      }
+      buffer.write('<span>${_escapeHtml(part)}</span>');
     }
 
     buffer.writeln('</div>');
     return buffer.toString();
   }
 
-  /// Generates source code display with line-by-line coverage
-  String _generateSourceCodeDisplay(SourceFile sourceFile) {
+  String _sourceCode(SourceFile sourceFile) {
     final buffer = StringBuffer();
 
-    // Create a map of line numbers to coverage data for quick lookup
     final lineCoverageMap = <int, LineCoverage>{};
     for (final line in sourceFile.lines) {
       lineCoverageMap[line.lineNumber] = line;
     }
 
-    // We need to read the actual source file to display the code
-    // For now, we'll generate placeholder content showing coverage info
-    final maxLineNumber = sourceFile.lines.isNotEmpty
-        ? sourceFile.lines
+    final maxLineNumber = sourceFile.lines.isEmpty
+        ? 0
+        : sourceFile.lines
               .map((l) => l.lineNumber)
-              .reduce((a, b) => a > b ? a : b)
-        : 0;
+              .reduce((a, b) => a > b ? a : b);
 
-    for (int lineNum = 1; lineNum <= maxLineNumber; lineNum++) {
+    for (var lineNum = 1; lineNum <= maxLineNumber; lineNum++) {
       final coverage = lineCoverageMap[lineNum];
       final cssClass = coverage != null
           ? CssGenerator.getLineCoverageClass(coverage.hitCount)
           : 'line-no-code';
 
-      final hitCount = coverage?.hitCount ?? 0;
-      final hitDisplay = coverage != null ? hitCount.toString() : '';
+      final hitDisplay = coverage != null ? coverage.hitCount.toString() : '';
 
       buffer.writeln('        <div class="source-line $cssClass">');
       buffer.writeln('            <div class="line-number">$lineNum</div>');
@@ -291,35 +282,21 @@ class HtmlGenerator {
     return buffer.toString();
   }
 
-  /// Sorts source files based on options (by coverage or name)
   List<SourceFile> _sortSourceFiles(List<SourceFile> sourceFiles) {
     final files = List<SourceFile>.from(sourceFiles);
-
-    // Sort by coverage percentage (lowest first) then by name
     files.sort((a, b) {
       final coverageComparison = a.overallCoveragePercentage.compareTo(
         b.overallCoveragePercentage,
       );
-      if (coverageComparison != 0) {
-        return coverageComparison;
-      }
+      if (coverageComparison != 0) return coverageComparison;
       return a.path.compareTo(b.path);
     });
-
     return files;
   }
 
-  /// Gets the HTML filename for a source file
-  String _getSourceFileHtmlName(String sourcePath) {
-    return '${sourcePath.replaceAll('/', '_').replaceAll('\\', '_')}.html';
-  }
+  String _formatTimestamp(DateTime timestamp) =>
+      timestamp.toIso8601String().replaceAll('T', ' ').substring(0, 19);
 
-  /// Formats timestamp for display
-  String _formatTimestamp(DateTime timestamp) {
-    return timestamp.toIso8601String().replaceAll('T', ' ').substring(0, 19);
-  }
-
-  /// Escapes HTML special characters
   String _escapeHtml(String text) {
     return text
         .replaceAll('&', '&amp;')
@@ -328,27 +305,4 @@ class HtmlGenerator {
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#x27;');
   }
-}
-
-/// Configuration options for HTML generation
-class HtmlGeneratorOptions {
-  /// Output directory for generated HTML files
-  final String outputDirectory;
-
-  /// Title for the coverage report
-  final String title;
-
-  /// Whether to show branch coverage
-  final bool showBranches;
-
-  /// Whether to show function coverage
-  final bool showFunctions;
-
-  /// Creates new HTML generator options
-  const HtmlGeneratorOptions({
-    required this.outputDirectory,
-    this.title = 'LCOV - Code Coverage Report',
-    this.showBranches = true,
-    this.showFunctions = true,
-  });
 }

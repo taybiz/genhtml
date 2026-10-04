@@ -1,10 +1,12 @@
 import 'dart:io';
+
 import 'package:args/args.dart';
 import 'package:genhtml/genhtml.dart';
 
-// be in the habit of checking this against pubspec.yaml
-const String version = "1.0.1";
+/// The tool version, kept in sync with `pubspec.yaml` by hand.
+const String version = '1.0.1';
 
+/// Builds the argument parser for the genhtml CLI.
 ArgParser buildParser() {
   return ArgParser()
     ..addFlag(
@@ -70,6 +72,7 @@ ArgParser buildParser() {
     );
 }
 
+/// Prints usage information for the CLI.
 void printUsage(ArgParser argParser) {
   print('Usage: dart genhtml.dart [options] <lcov-file>');
   print('');
@@ -88,32 +91,35 @@ void printUsage(ArgParser argParser) {
   );
 }
 
+/// CLI entry point.
+///
+/// This is the single permitted throw surface in the project: it consumes the
+/// `Either` / `TaskEither` values returned by the core, prints any failure and
+/// maps it onto the process exit code. Library code never throws.
 Future<void> main(List<String> arguments) async {
   final ArgParser argParser = buildParser();
 
   try {
     final ArgResults results = argParser.parse(arguments);
 
-    // Handle help flag first - no validation needed
+    // Handle help and version first — no validation needed.
     if (results.flag('help')) {
       printUsage(argParser);
       exit(0);
     }
 
-    // Handle version flag first - no validation needed
     if (results.flag('version')) {
       print('genhtml version: $version');
       exit(0);
     }
 
-    // Only validate command line arguments if we're not showing help or version
-    final validationResult = Validation.validateCommandLineArgs(arguments);
-    if (!validationResult.isValid) {
-      stderr.writeln('Error: ${validationResult.message}');
+    // Validate the command-line arguments (failure is a value).
+    final argsCheck = Validation.validateCommandLineArgs(arguments);
+    if (argsCheck.isLeft()) {
+      stderr.writeln('Error: ${argsCheck.getLeft().toNullable()!.message}');
       exit(1);
     }
 
-    // Check for input file
     if (results.rest.isEmpty) {
       stderr.writeln('Error: No input LCOV file specified.');
       printUsage(argParser);
@@ -133,7 +139,7 @@ Future<void> main(List<String> arguments) async {
     final showBranches = results.flag('show-branches');
     final showFunctions = results.flag('show-functions');
 
-    // Parse threshold values
+    // Parse threshold values.
     final lineThreshold =
         double.tryParse(results['line-threshold'] as String) ?? 0.0;
     final functionThreshold =
@@ -141,55 +147,58 @@ Future<void> main(List<String> arguments) async {
     final branchThreshold =
         double.tryParse(results['branch-threshold'] as String) ?? 0.0;
 
-    // Validate thresholds
+    // Validate thresholds.
     for (final threshold in [
       lineThreshold,
       functionThreshold,
       branchThreshold,
     ]) {
-      final thresholdValidation = Validation.validateCoverageThreshold(
-        threshold,
-      );
-      if (!thresholdValidation.isValid) {
-        stderr.writeln('Error: ${thresholdValidation.message}');
+      final thresholdCheck = Validation.validateCoverageThreshold(threshold);
+      if (thresholdCheck.isLeft()) {
+        stderr.writeln(
+          'Error: ${thresholdCheck.getLeft().toNullable()!.message}',
+        );
         exit(1);
       }
     }
 
-    // Validate input file
-    final inputValidation = await Validation.validateInputFile(inputFile);
-    if (!inputValidation.isValid) {
-      stderr.writeln('Error: ${inputValidation.message}');
-      exit(1);
+    // A title that fails validation is a warning, not a fatal error.
+    final titleCheck = Validation.validateHtmlTitle(title);
+    if (titleCheck.isLeft() && verbose) {
+      print('Warning: ${titleCheck.getLeft().toNullable()!.message}');
     }
 
-    // Validate output directory
-    final outputValidation = await Validation.validateOutputDirectory(
-      outputDir,
-    );
-    if (!outputValidation.isValid) {
-      stderr.writeln('Error: ${outputValidation.message}');
+    // Validate the input file exists.
+    const fileDatasource = LcovFileDatasource();
+    final existsEither = await fileDatasource.exists(inputFile).run();
+    if (existsEither.isLeft() || existsEither.getRight().toNullable() != true) {
+      stderr.writeln('Error: File does not exist: $inputFile');
       exit(1);
-    }
-
-    // Validate title
-    final titleValidation = Validation.validateHtmlTitle(title);
-    if (titleValidation.isWarning && verbose) {
-      print('Warning: ${titleValidation.message}');
     }
 
     if (!quiet) {
       print('Reading LCOV file: $inputFile');
     }
 
-    // Parse LCOV file
-    CoverageData coverageData;
-    try {
-      coverageData = await LcovParser.parseFile(inputFile, title: title);
-    } catch (e) {
-      stderr.writeln('Error parsing LCOV file: $e');
+    // Read and parse the LCOV trace — failures are values, never throws.
+    final readEither = await fileDatasource.read(inputFile).run();
+    if (readEither.isLeft()) {
+      stderr.writeln(
+        'Error parsing LCOV file: ${readEither.getLeft().toNullable()!.message}',
+      );
       exit(1);
     }
+
+    final content = readEither.getRight().toNullable()!;
+    final parsed = const ParseLcovUseCase()(content, title: title);
+    if (parsed.isLeft()) {
+      stderr.writeln(
+        'Error parsing LCOV file: ${parsed.getLeft().toNullable()!.message}',
+      );
+      exit(1);
+    }
+
+    final coverageData = parsed.getRight().toNullable()!;
 
     if (!quiet) {
       print('Found ${coverageData.fileCount} source files');
@@ -207,7 +216,7 @@ Future<void> main(List<String> arguments) async {
       );
     }
 
-    // Check thresholds
+    // Check thresholds.
     var exitCode = 0;
 
     if (lineThreshold > 0 &&
@@ -236,33 +245,34 @@ Future<void> main(List<String> arguments) async {
       exitCode = 1;
     }
 
-    // Generate HTML report
+    // Render the report (pure) and write it (adapter).
     if (!quiet) {
       print('Generating HTML report in: $outputDir');
     }
 
-    try {
-      final options = HtmlGeneratorOptions(
-        outputDirectory: outputDir,
+    final pages = const GenerateHtmlReportUseCase()(
+      coverageData,
+      options: HtmlReportOptions(
         title: title,
         showBranches: showBranches,
         showFunctions: showFunctions,
+      ),
+    );
+
+    const reportDatasource = HtmlReportDatasource();
+    final writeEither = await reportDatasource.write(outputDir, pages).run();
+    if (writeEither.isLeft()) {
+      stderr.writeln(
+        'Error generating HTML report: ${writeEither.getLeft().toNullable()!.message}',
       );
-
-      final generator = HtmlGenerator(options: options);
-
-      // Generate the complete HTML report
-      await generator.generateReport(coverageData);
-
-      if (!quiet) {
-        print(
-          'Generated index.html and ${coverageData.fileCount} source file pages',
-        );
-        print('Open $outputDir/index.html in your browser to view the report');
-      }
-    } catch (e) {
-      stderr.writeln('Error generating HTML report: $e');
       exit(1);
+    }
+
+    if (!quiet) {
+      print(
+        'Generated index.html and ${coverageData.fileCount} source file pages',
+      );
+      print('Open $outputDir/index.html in your browser to view the report');
     }
 
     if (!quiet && exitCode == 0) {

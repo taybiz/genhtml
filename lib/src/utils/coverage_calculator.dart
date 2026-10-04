@@ -1,11 +1,16 @@
-import '../models/source_file.dart';
-import '../models/line_coverage.dart';
-import '../models/function_coverage.dart';
-import '../models/branch_coverage.dart';
+import '../domain/entities/branch_coverage.dart';
+import '../domain/entities/function_coverage.dart';
+import '../domain/entities/line_coverage.dart';
+import '../domain/entities/source_file.dart';
 
-/// Utility class for calculating coverage percentages and statistics.
+/// Pure helpers for computing and formatting coverage percentages.
+///
+/// Every method here is a total function of its arguments — no I/O, no
+/// throwing, no failure value. Failure-as-a-value applies to the fallible
+/// seams (parsing, the adapters); arithmetic on valid coverage data cannot
+/// fail, so it returns plain values.
 class CoverageCalculator {
-  /// Calculates line coverage percentage for a list of lines
+  /// Line coverage percentage for [lines]; 100.0 when there are no lines.
   static double calculateLineCoverage(List<LineCoverage> lines) {
     if (lines.isEmpty) return 100.0;
 
@@ -13,7 +18,7 @@ class CoverageCalculator {
     return (hitLines / lines.length) * 100.0;
   }
 
-  /// Calculates function coverage percentage for a list of functions
+  /// Function coverage percentage for [functions]; 100.0 when there are none.
   static double calculateFunctionCoverage(List<FunctionCoverage> functions) {
     if (functions.isEmpty) return 100.0;
 
@@ -21,7 +26,7 @@ class CoverageCalculator {
     return (hitFunctions / functions.length) * 100.0;
   }
 
-  /// Calculates branch coverage percentage for a list of branches
+  /// Branch coverage percentage for [branches]; 100.0 when there are none.
   static double calculateBranchCoverage(List<BranchCoverage> branches) {
     if (branches.isEmpty) return 100.0;
 
@@ -29,10 +34,11 @@ class CoverageCalculator {
     return (hitBranches / branches.length) * 100.0;
   }
 
-  /// Calculates overall coverage for a source file
+  /// Overall coverage for [sourceFile]: the average of line coverage and, when
+  /// present, function and branch coverage.
   static double calculateOverallCoverage(SourceFile sourceFile) {
-    double total = sourceFile.lineCoveragePercentage;
-    int count = 1;
+    var total = sourceFile.lineCoveragePercentage;
+    var count = 1;
 
     if (sourceFile.totalFunctions > 0) {
       total += sourceFile.functionCoveragePercentage;
@@ -47,7 +53,7 @@ class CoverageCalculator {
     return total / count;
   }
 
-  /// Calculates weighted coverage based on importance factors
+  /// Weighted average of the three coverage ratios.
   static double calculateWeightedCoverage({
     required double lineCoverage,
     required double functionCoverage,
@@ -65,14 +71,14 @@ class CoverageCalculator {
         totalWeight;
   }
 
-  /// Determines the coverage level based on percentage
+  /// Classifies [percentage] into a [CoverageLevel].
   static CoverageLevel getCoverageLevel(double percentage) {
     if (percentage >= 90.0) return CoverageLevel.high;
     if (percentage >= 60.0) return CoverageLevel.medium;
     return CoverageLevel.low;
   }
 
-  /// Gets the CSS class name for a coverage percentage
+  /// The CSS class name used to colour a coverage [percentage].
   static String getCoverageCssClass(double percentage) {
     switch (getCoverageLevel(percentage)) {
       case CoverageLevel.high:
@@ -84,7 +90,7 @@ class CoverageCalculator {
     }
   }
 
-  /// Formats a coverage percentage as a string with specified decimal places
+  /// Formats [percentage] as e.g. `"85.5%"`.
   static String formatCoveragePercentage(
     double percentage, {
     int decimalPlaces = 1,
@@ -92,23 +98,23 @@ class CoverageCalculator {
     return '${percentage.toStringAsFixed(decimalPlaces)}%';
   }
 
-  /// Formats coverage counts as a fraction string (e.g., "85/100")
+  /// Formats a hit/total pair as a fraction string, e.g. `"85/100"`.
   static String formatCoverageFraction(int hit, int total) {
     return '$hit/$total';
   }
 
-  /// Calculates coverage delta between two percentages
+  /// The signed difference `current - previous`.
   static double calculateCoverageDelta(double current, double previous) {
     return current - previous;
   }
 
-  /// Formats coverage delta with appropriate sign and color indication
+  /// Formats [delta] with an explicit sign, e.g. `"+2.5%"`.
   static String formatCoverageDelta(double delta, {int decimalPlaces = 1}) {
     final sign = delta >= 0 ? '+' : '';
     return '$sign${delta.toStringAsFixed(decimalPlaces)}%';
   }
 
-  /// Calculates the number of additional hits needed to reach a target percentage
+  /// Extra hits required to reach [targetPercentage]; never negative.
   static int calculateHitsNeededForTarget(
     int currentHits,
     int total,
@@ -121,10 +127,10 @@ class CoverageCalculator {
     return additionalHits > 0 ? additionalHits : 0;
   }
 
-  /// Calculates coverage statistics for a list of source files
+  /// Descriptive statistics over the per-file overall coverage of [sourceFiles].
   static CoverageStatistics calculateStatistics(List<SourceFile> sourceFiles) {
     if (sourceFiles.isEmpty) {
-      return CoverageStatistics.empty();
+      return const CoverageStatistics.empty();
     }
 
     final coveragePercentages = sourceFiles
@@ -144,7 +150,6 @@ class CoverageCalculator {
     final min = coveragePercentages.first;
     final max = coveragePercentages.last;
 
-    // Calculate standard deviation
     final variance =
         coveragePercentages
             .map((x) => (x - mean) * (x - mean))
@@ -162,40 +167,50 @@ class CoverageCalculator {
     );
   }
 
-  /// Validates that coverage percentages are within valid range
+  /// Whether [percentage] lies within the valid `0.0 .. 100.0` range.
   static bool isValidCoveragePercentage(double percentage) {
     return percentage >= 0.0 && percentage <= 100.0;
   }
 
-  /// Clamps a coverage percentage to valid range (0.0 to 100.0)
+  /// [percentage] clamped to the valid `0.0 .. 100.0` range.
   static double clampCoveragePercentage(double percentage) {
     return percentage.clamp(0.0, 100.0);
   }
 }
 
-/// Represents different levels of coverage quality.
-enum CoverageLevel { low, medium, high }
+/// Bands used to colour a coverage percentage.
+enum CoverageLevel {
+  /// Below 60%.
+  low,
 
-/// Statistical information about coverage across multiple files.
+  /// 60% to just under 90%.
+  medium,
+
+  /// 90% and above.
+  high,
+}
+
+/// Descriptive statistics about coverage across several files.
 class CoverageStatistics {
-  /// Mean (average) coverage percentage
+  /// Mean (average) coverage percentage.
   final double mean;
 
-  /// Median coverage percentage
+  /// Median coverage percentage.
   final double median;
 
-  /// Minimum coverage percentage
+  /// Minimum coverage percentage.
   final double min;
 
-  /// Maximum coverage percentage
+  /// Maximum coverage percentage.
   final double max;
 
-  /// Standard deviation of coverage percentages
+  /// Standard deviation of the coverage percentages.
   final double standardDeviation;
 
-  /// Number of files included in the statistics
+  /// Number of files included in the statistics.
   final int fileCount;
 
+  /// Creates statistics with explicit values.
   const CoverageStatistics({
     required this.mean,
     required this.median,
@@ -205,7 +220,7 @@ class CoverageStatistics {
     required this.fileCount,
   });
 
-  /// Creates empty statistics
+  /// All-zero statistics, used when there are no files.
   const CoverageStatistics.empty()
     : mean = 0.0,
       median = 0.0,
@@ -226,14 +241,14 @@ class CoverageStatistics {
   }
 }
 
-/// Extension to add sqrt method to double
+/// Square root for [double], implemented without `dart:math`.
 extension DoubleExtension on double {
+  /// The square root of this value by Newton's method; `NaN` for negatives.
   double sqrt() {
     if (this < 0) return double.nan;
     if (this == 0) return 0;
 
-    // Newton's method for square root
-    double x = this;
+    var x = this;
     double prev;
     do {
       prev = x;

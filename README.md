@@ -1,14 +1,25 @@
 # genhtml for Windows
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/staylorx/genhtml-dart)
+[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/taybiz/genhtml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](https://github.com/staylorx/genhtml-dart/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](https://github.com/taybiz/genhtml/releases)
 
 A **cross-platform implementation** of the Linux `genhtml` tool for generating HTML coverage reports from LCOV trace files. This tool provides a **drop-in replacement** for the standard genhtml command, with native binaries available for Windows, Linux, and macOS.
 
 ## 🎯 **Why This genhtml Implementation?**
 
 When working with code coverage, AI assistants and development tools often suggest using `genhtml` - but this tool isn't natively available on Windows without jumping through hoops like WSL or Cygwin, and can be missing on some Linux distributions. This project solves that problem by providing **native executables for all major platforms** that are fully compatible with the Linux genhtml interface.
+
+## 🧭 **Error style (for library consumers)**
+
+`genhtml` is a **functional-core** package: **you receive failures as values, never exceptions.**
+
+- Every fallible operation returns `Either<GenhtmlFailure, T>` or `TaskEither<GenhtmlFailure, T>`.
+- Failures are the sealed `GenhtmlFailure` hierarchy — `ParseFailure`, `ValidationFailure`, `IoFailure` — switchable exhaustively.
+- `try` / `catch` appears only inside the datasource adapters, where the third-party `dart:io` calls are wrapped once.
+- The one permitted throw surface is the CLI entry point `bin/genhtml.dart`, which turns a returned `Left` into a `stderr` message and an exit code.
+
+The same declaration is repeated in the `lib/genhtml.dart` barrel doc comment.
 
 ## ✨ **Features**
 
@@ -18,27 +29,26 @@ When working with code coverage, AI assistants and development tools often sugge
 - 🎨 **Professional HTML Reports** - Clean, modern, and accessible coverage reports
 - 📈 **Coverage Metrics** - Line, function, and branch coverage with configurable thresholds
 - ⚡ **Standalone Executables** - Single binary files for easy distribution
-- 🧪 **Thoroughly Tested** - Comprehensive test suite with 63+ passing tests
+- 🧪 **Thoroughly Tested** - Comprehensive unit, integration and fixture test suite
 - 🎛️ **Flexible Configuration** - Extensive command-line options for customization
 
 ## 🚀 **Quick Start**
 
 ### Option 1: Download Pre-compiled Executable
 
-1. Go to the [releases page](https://github.com/staylorx/genhtml-dart/releases)
+1. Go to the [releases page](https://github.com/taybiz/genhtml/releases)
 2. Download the appropriate binary for your platform:
-   - **Windows**: `genhtml-windows-amd64.exe` or `genhtml-windows-arm64.exe`
-   - **Linux**: `genhtml-linux-amd64` or `genhtml-linux-arm64`
-   - **macOS**: `genhtml-macos-amd64` or `genhtml-macos-arm64`
+   - **Windows**: `genhtml-windows-amd64.exe`
+   - (Linux and macOS targets are configured in the release workflow but currently commented out.)
 3. Place it in your PATH or project directory
-4. Run: `./genhtml-[platform] coverage.info` (or `genhtml-[platform].exe coverage.info` on Windows)
+4. Run: `genhtml-windows-amd64.exe coverage.info`
 
 ### Option 2: Compile from Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/staylorx/genhtml-dart.git
-cd genhtml-dart
+git clone https://github.com/taybiz/genhtml.git
+cd genhtml
 
 # Install dependencies
 dart pub get
@@ -58,15 +68,11 @@ dart compile exe bin/genhtml.dart -o genhtml.exe
 # Windows
 genhtml-windows-amd64.exe coverage.info
 
-# Linux/macOS (make executable first)
-chmod +x genhtml-linux-amd64
-./genhtml-linux-amd64 coverage.info
-
 # Specify output directory and title
-./genhtml-linux-amd64 coverage.info -o html_report --title "My Project Coverage"
+genhtml.exe coverage.info -o html_report --title "My Project Coverage"
 
 # Set coverage thresholds
-./genhtml-linux-amd64 coverage.info --line-threshold 80 --function-threshold 90
+genhtml.exe coverage.info --line-threshold 80 --function-threshold 90
 ```
 
 ### Command-Line Options
@@ -136,46 +142,35 @@ genhtml.exe coverage/lcov.info -o coverage/html --title "My Dart Project"
 
 ## 🏗️ **Project Architecture**
 
-### Core Components
+### Layout
 
 ```
 genhtml/
-├── bin/genhtml.dart           # CLI entry point and argument parsing
+├── bin/genhtml.dart                 # CLI entry point (the one throw surface)
 ├── lib/
-│   ├── genhtml.dart          # Main library exports
+│   ├── genhtml.dart                 # Barrel + error-style declaration
 │   └── src/
-│       ├── models/           # Data structures for coverage data
-│       │   ├── coverage_data.dart
-│       │   ├── source_file.dart
-│       │   ├── line_coverage.dart
-│       │   ├── function_coverage.dart
-│       │   └── branch_coverage.dart
-│       ├── parsers/          # LCOV file parsing
-│       │   └── lcov_parser.dart
-│       ├── generators/       # HTML report generation
-│       │   ├── html_generator.dart
-│       │   └── css_generator.dart
-│       └── utils/            # Utilities and validation
-│           ├── coverage_calculator.dart
-│           ├── file_utils.dart
-│           └── validation.dart
-└── test/                     # Comprehensive test suite
-    ├── unit/                 # Unit tests
-    ├── integration/          # Integration tests
-    └── fixtures/             # Test data files
+│       ├── domain/
+│       │   ├── entities/            # Immutable entities & value objects (Equatable)
+│       │   ├── failures.dart        # Sealed GenhtmlFailure hierarchy
+│       │   ├── validation.dart      # Pure validation (Either)
+│       │   └── usecases/            # ParseLcov, GenerateHtmlReport (pure)
+│       ├── datasources/             # File I/O adapters (TaskEither, tryCatch)
+│       ├── generators/              # CSS
+│       └── utils/                   # Coverage arithmetic, file helpers
+└── test/                            # Unit, integration and fixture tests
 ```
 
-### Key Features
+### Components
 
-- **LCOV Parser**: Robust parsing of all LCOV record types (SF, FN, FNDA, DA, BRDA, etc.)
-- **HTML Generator**: Professional HTML reports with CSS styling and navigation
-- **Validation Framework**: Comprehensive input validation and error handling
-- **Coverage Calculator**: Accurate percentage calculations and threshold checking
-- **File Utilities**: Cross-platform file operations optimized for Windows
+- **LCOV parser** — `ParseLcovUseCase` turns trace text into `CoverageData` and returns failure as a value.
+- **HTML report** — `GenerateHtmlReportUseCase` renders the pages purely; `HtmlReportDatasource` writes them.
+- **Validation** — pure checks in `Validation`, also returning `Either`.
+- **Coverage calculator** — accurate percentage calculations and threshold checking.
+
+Architecture, topology and functional-core rules are **doctrine** and live in the [Dart/Flutter Bible](https://github.com/taybiz/dart-flutter-bible), not here — see the link table in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 🧪 **Testing**
-
-The project includes a comprehensive test suite with 63+ tests covering:
 
 ```bash
 # Run all tests
@@ -195,7 +190,7 @@ genhtml.exe coverage/lcov.info -o coverage/html
 
 ### Test Coverage
 
-- **Unit Tests**: Individual component testing (parsers, generators, utilities)
+- **Unit Tests**: Individual component testing (CLI args, version utilities)
 - **Integration Tests**: End-to-end CLI workflow testing
 - **Fixture Tests**: Real-world LCOV file scenarios
 - **Edge Case Tests**: Error handling and boundary conditions
@@ -212,7 +207,7 @@ genhtml.exe coverage/lcov.info -o coverage/html
 ### Performance Characteristics
 
 - **Small Projects** (< 100 files): < 1 second
-- **Medium Projects** (100-1000 files): 1-5 seconds  
+- **Medium Projects** (100-1000 files): 1-5 seconds
 - **Large Projects** (1000+ files): 5-30 seconds
 - **Memory Usage**: ~50MB base + ~1MB per 100 source files
 
@@ -231,8 +226,8 @@ The tool efficiently handles:
 ```bash
 # Install Dart SDK (https://dart.dev/get-dart)
 # Clone and setup
-git clone https://github.com/staylorx/genhtml-dart.git
-cd genhtml-dart
+git clone https://github.com/taybiz/genhtml.git
+cd genhtml
 dart pub get
 
 # Run tests to verify
@@ -301,8 +296,8 @@ genhtml.exe --help
 ### Getting Help
 
 - 📖 Check this README for common solutions
-- 🐛 [Open an issue](https://github.com/staylorx/genhtml-dart/issues) for bugs
-- 💡 [Request features](https://github.com/staylorx/genhtml-dart/issues) for enhancements
+- 🐛 [Open an issue](https://github.com/taybiz/genhtml/issues) for bugs
+- 💡 [Request features](https://github.com/taybiz/genhtml/issues) for enhancements
 - 📧 Contact maintainers for support
 
 ## 🤝 **Contributing**
@@ -312,18 +307,16 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Development Setup
 
 ```bash
-git clone https://github.com/staylorx/genhtml-dart.git
-cd genhtml-dart
+git clone https://github.com/taybiz/genhtml.git
+cd genhtml
 dart pub get
 dart test  # Ensure all tests pass
 ```
 
-### Code Style
-
-- Follow [Dart style guide](https://dart.dev/guides/language/effective-dart/style)
-- Run `dart format .` before committing
-- Ensure `dart analyze` passes without warnings
-- Add tests for new functionality
+Coding rules, style and quality expectations are doctrine — the
+[Contributing Guide](CONTRIBUTING.md) links to the relevant
+[Dart/Flutter Bible](https://github.com/taybiz/dart-flutter-bible) sections
+instead of restating them.
 
 ## 📄 **License**
 

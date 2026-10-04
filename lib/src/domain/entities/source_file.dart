@@ -1,22 +1,24 @@
-import 'line_coverage.dart';
-import 'function_coverage.dart';
-import 'branch_coverage.dart';
+import 'package:equatable/equatable.dart';
 
-/// Represents coverage information for a single source file.
-class SourceFile {
-  /// The path to the source file
+import 'branch_coverage.dart';
+import 'function_coverage.dart';
+import 'line_coverage.dart';
+
+/// Entity describing the coverage recorded for a single source file.
+class SourceFile extends Equatable {
+  /// The path to the source file.
   final String path;
 
-  /// Line coverage data for this file
+  /// Line coverage recorded for this file.
   final List<LineCoverage> lines;
 
-  /// Function coverage data for this file
+  /// Function coverage recorded for this file.
   final List<FunctionCoverage> functions;
 
-  /// Branch coverage data for this file
+  /// Branch coverage recorded for this file.
   final List<BranchCoverage> branches;
 
-  /// Creates a new source file coverage instance.
+  /// Creates a new source file coverage entity.
   const SourceFile({
     required this.path,
     required this.lines,
@@ -24,49 +26,49 @@ class SourceFile {
     required this.branches,
   });
 
-  /// Creates an empty source file with the given path
+  /// Creates an empty source file with the given [path].
   SourceFile.empty(this.path)
     : lines = const [],
       functions = const [],
       branches = const [];
 
-  /// Total number of lines in this file
+  /// Total number of lines in this file.
   int get totalLines => lines.length;
 
-  /// Number of lines that were hit (covered)
+  /// Number of lines that were hit (covered).
   int get hitLines => lines.where((line) => line.isCovered).length;
 
-  /// Line coverage percentage (0.0 to 100.0)
+  /// Line coverage percentage (0.0 to 100.0).
   double get lineCoveragePercentage {
     if (totalLines == 0) return 100.0;
     return (hitLines / totalLines) * 100.0;
   }
 
-  /// Total number of functions in this file
+  /// Total number of functions in this file.
   int get totalFunctions => functions.length;
 
-  /// Number of functions that were hit (covered)
+  /// Number of functions that were hit (covered).
   int get hitFunctions => functions.where((func) => func.isCovered).length;
 
-  /// Function coverage percentage (0.0 to 100.0)
+  /// Function coverage percentage (0.0 to 100.0).
   double get functionCoveragePercentage {
     if (totalFunctions == 0) return 100.0;
     return (hitFunctions / totalFunctions) * 100.0;
   }
 
-  /// Total number of branches in this file
+  /// Total number of branches in this file.
   int get totalBranches => branches.length;
 
-  /// Number of branches that were hit (covered)
+  /// Number of branches that were hit (covered).
   int get hitBranches => branches.where((branch) => branch.isCovered).length;
 
-  /// Branch coverage percentage (0.0 to 100.0)
+  /// Branch coverage percentage (0.0 to 100.0).
   double get branchCoveragePercentage {
     if (totalBranches == 0) return 100.0;
     return (hitBranches / totalBranches) * 100.0;
   }
 
-  /// Overall coverage percentage (average of line, function, and branch coverage)
+  /// Overall coverage percentage (average of line, function and branch coverage).
   double get overallCoveragePercentage {
     double total = lineCoveragePercentage;
     int count = 1;
@@ -84,30 +86,28 @@ class SourceFile {
     return total / count;
   }
 
-  /// Gets the coverage for a specific line number
+  /// Gets the coverage for a specific line number, or `null` when absent.
   LineCoverage? getLineCoverage(int lineNumber) {
-    try {
-      return lines.firstWhere((line) => line.lineNumber == lineNumber);
-    } catch (e) {
-      return null;
+    for (final line in lines) {
+      if (line.lineNumber == lineNumber) return line;
     }
+    return null;
   }
 
-  /// Gets the function coverage for a specific function name
+  /// Gets the coverage for a specific function name, or `null` when absent.
   FunctionCoverage? getFunctionCoverage(String functionName) {
-    try {
-      return functions.firstWhere((func) => func.functionName == functionName);
-    } catch (e) {
-      return null;
+    for (final func in functions) {
+      if (func.functionName == functionName) return func;
     }
+    return null;
   }
 
-  /// Gets all branches for a specific line number
+  /// Gets all branches recorded on [lineNumber].
   List<BranchCoverage> getBranchesForLine(int lineNumber) {
     return branches.where((branch) => branch.lineNumber == lineNumber).toList();
   }
 
-  /// Creates a copy of this source file with updated coverage data
+  /// Creates a copy of this entity with the given fields replaced.
   SourceFile copyWith({
     String? path,
     List<LineCoverage>? lines,
@@ -123,29 +123,10 @@ class SourceFile {
   }
 
   @override
+  List<Object?> get props => [path, lines, functions, branches];
+
+  @override
   String toString() {
     return 'SourceFile(path: "$path", lines: ${lines.length}, functions: ${functions.length}, branches: ${branches.length})';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is SourceFile &&
-        other.path == path &&
-        _listEquals(other.lines, lines) &&
-        _listEquals(other.functions, functions) &&
-        _listEquals(other.branches, branches);
-  }
-
-  @override
-  int get hashCode => Object.hash(path, lines, functions, branches);
-
-  /// Helper method to compare lists for equality
-  bool _listEquals<T>(List<T> a, List<T> b) {
-    if (a.length != b.length) return false;
-    for (int i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
   }
 }

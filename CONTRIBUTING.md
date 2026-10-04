@@ -1,6 +1,8 @@
 # Contributing to genhtml for Windows
 
-Thank you for your interest in contributing to genhtml for Windows! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to genhtml for Windows! This document covers how to set up, test and submit changes.
+
+Everything else — architecture, toolchain, functional-core rules, testing style, the review checklist — is **doctrine**, and it lives in the Dart/Flutter Bible, not here. See [Doctrine](#-doctrine) below.
 
 ## 🎯 **Project Overview**
 
@@ -10,33 +12,37 @@ genhtml for Windows is a native Windows implementation of the Linux genhtml tool
 
 ### Prerequisites
 
-- [Dart SDK](https://dart.dev/get-dart) 3.9.2 or later
+- [Dart SDK](https://dart.dev/get-dart) — the version floor is the `environment.sdk` constraint in `pubspec.yaml` (`>=3.10.0 <4.0.0`), which the CI Dart pin follows.
 - Windows 10 or later
 - Git for version control
 
 ### Development Setup
 
 1. **Fork and Clone**
+
    ```bash
-   git clone https://github.com/your-username/genhtml-dart.git
-   cd genhtml-dart
+   git clone https://github.com/taybiz/genhtml.git
+   cd genhtml
    ```
 
 2. **Install Dependencies**
+
    ```bash
    dart pub get
    ```
 
 3. **Verify Setup**
+
    ```bash
    # Run tests to ensure everything works
    dart test
-   
+
    # Run the tool to verify functionality
    dart bin/genhtml.dart --help
    ```
 
 4. **Compile and Test Executable**
+
    ```bash
    dart compile exe bin/genhtml.dart -o genhtml.exe
    .\genhtml.exe --version
@@ -69,102 +75,40 @@ dart bin/genhtml.dart coverage/lcov.info -o coverage/html
 - **Test Fixtures** (`test/fixtures/`): Real-world LCOV test data
 - **Test Utilities** (`test/test_utils.dart`): Helper functions for testing
 
-### Writing Tests
+Test *style* (Given/When/Then names, the assertion library, mocking at use-case seams) is doctrine — see the bible's §6 below. Read the existing tests and match them.
+
+### Adding Functionality
 
 When adding new functionality:
 
 1. **Add Unit Tests**: Test the component in isolation
 2. **Add Integration Tests**: Test the complete workflow
 3. **Add Test Fixtures**: Include realistic test data if needed
-4. **Update Test Documentation**: Keep test README current
+4. **Update Test Documentation**: Keep the test README current
 
-Example test structure:
-```dart
-void main() {
-  group('Component Name', () {
-    setUp(() {
-      // Setup code
-    });
+## 📚 **Doctrine**
 
-    tearDown(() {
-      // Cleanup code
-    });
+This project follows the [Dart/Flutter Bible](https://github.com/taybiz/dart-flutter-bible). Rather than restating its rules here — a second copy is a second truth (D.R.Y.) — link to the section instead:
 
-    test('should do something specific', () {
-      // Test implementation
-      expect(actual, equals(expected));
-    });
-  });
-}
-```
+| Concern | Bible section |
+| --- | --- |
+| Architecture, the Four Laws, functional core | `docs/01-architecture`, `docs/04-functional-core` |
+| Toolchain, SDK constraint, analysis gate | `docs/02-toolchain` |
+| Package topology, one class per file, CLI entry | `docs/03-topology` |
+| Testing style and seams | `docs/06-testing` |
+| Review checklist | `docs/10-review-checklist` |
 
-## 📝 **Code Style**
+If a rule is missing from the bible, propose it there — do not fork it into this repository's docs.
 
-### Dart Style Guidelines
-
-We follow the [Dart Style Guide](https://dart.dev/guides/language/effective-dart/style):
-
-- Use `dart format .` to format code
-- Run `dart analyze` to check for issues
-- Follow naming conventions (camelCase for variables, PascalCase for classes)
-- Write clear, descriptive variable and function names
-
-### Code Quality
-
-- **Type Safety**: Use strong typing and null safety
-- **Documentation**: Add dartdoc comments for public APIs
-- **Error Handling**: Provide clear error messages and proper exception handling
-- **Performance**: Consider performance implications, especially for large files
-
-### Example Code Style
-
-```dart
-/// Parses LCOV content and returns coverage data.
-/// 
-/// Throws [LcovParseException] if the content is invalid.
-static CoverageData parse(String lcovContent, {String? title}) {
-  // Validate input
-  if (lcovContent.isEmpty) {
-    throw LcovParseException('LCOV content cannot be empty');
-  }
-  
-  // Implementation...
-  return CoverageData.fromSourceFiles(sourceFiles, title: title);
-}
-```
-
-## 🏗️ **Architecture**
-
-### Project Structure
-
-```
-genhtml/
-├── bin/genhtml.dart           # CLI entry point
-├── lib/
-│   ├── genhtml.dart          # Main library exports
-│   └── src/
-│       ├── models/           # Data structures
-│       ├── parsers/          # LCOV parsing
-│       ├── generators/       # HTML generation
-│       └── utils/            # Utilities
-└── test/                     # Test suite
-```
-
-### Key Principles
-
-- **Separation of Concerns**: Each component has a single responsibility
-- **Testability**: All components should be easily testable
-- **Windows Compatibility**: Ensure all code works on Windows
-- **Performance**: Optimize for large projects and files
-- **Error Handling**: Provide clear, actionable error messages
+This package's own error style (failures as values, not exceptions) is declared in the `lib/genhtml.dart` barrel doc comment and in the README's *Error style* section.
 
 ## 🐛 **Bug Reports**
 
 ### Before Reporting
 
-1. Check existing [issues](https://github.com/staylorx/genhtml-dart/issues)
+1. Check existing [issues](https://github.com/taybiz/genhtml/issues)
 2. Verify the bug with the latest version
-3. Test with minimal reproduction case
+3. Test with a minimal reproduction case
 
 ### Bug Report Template
 
@@ -179,8 +123,8 @@ A clear description of the bug.
 
 **Environment**
 - OS: Windows 11
-- genhtml version: 1.0.0
-- Dart SDK: 3.9.2
+- genhtml version: 1.0.1
+- Dart SDK: 3.13.4
 
 **Additional Context**
 - LCOV file size: 2MB
@@ -223,9 +167,10 @@ Does Linux genhtml have this feature? How does it work there?
 2. **Create a branch** for your changes
 3. **Write tests** for new functionality
 4. **Update documentation** as needed
-5. **Run all tests** and ensure they pass
-6. **Format code** with `dart format .`
-7. **Analyze code** with `dart analyze`
+5. **Run the gates** — all three must pass:
+   - `dart analyze --fatal-infos --fatal-warnings` (zero diagnostics)
+   - `dart format --output=none --set-exit-if-changed .`
+   - `dart test`
 
 ### Pull Request Process
 
@@ -264,8 +209,9 @@ Fixes #123, addresses #456
 - [ ] Manual testing completed
 
 **Checklist**
-- [ ] Code formatted with `dart format`
-- [ ] No warnings from `dart analyze`
+- [ ] `dart analyze --fatal-infos --fatal-warnings` is clean
+- [ ] `dart format --output=none --set-exit-if-changed .` is clean
+- [ ] `dart test` is green
 - [ ] Documentation updated
 - [ ] CHANGELOG.md updated (if needed)
 ```
@@ -277,14 +223,8 @@ Fixes #123, addresses #456
 - **README.md**: User-facing documentation
 - **CHANGELOG.md**: Version history and changes
 - **Code Comments**: Inline documentation for complex logic
-- **API Documentation**: Dartdoc comments for public APIs
 
-### Documentation Standards
-
-- Use clear, concise language
-- Provide examples where helpful
-- Keep documentation up-to-date with code changes
-- Use proper markdown formatting
+Documentation *standards* (dartdoc on every public member, code samples live in tests) are doctrine — see the bible.
 
 ## 🏷️ **Versioning**
 
